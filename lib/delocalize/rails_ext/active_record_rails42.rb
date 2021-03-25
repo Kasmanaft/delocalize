@@ -19,49 +19,50 @@ ActiveRecord::ConnectionAdapters::Column.class_eval do
   end
 end
 
-module ActiveRecord::AttributeMethods::Write
-  def type_cast_attribute_for_write(column, value)
-    return value unless column
+module Delocalize
+  module AttributeMethods
+    module Write
 
-    value = Numeric.parse_localized(value) if column.number? && I18n.delocalization_enabled?
-    column.type_cast_for_write value
-  end
-end
-
-ActiveRecord::Base.class_eval do
-  def write_attribute_with_localization(attr_name, original_value)
-    new_value = original_value
-    if column = column_for_attribute(attr_name.to_s)
-      if column.date?
-        new_value = Date.parse_localized(original_value) rescue original_value
-      elsif column.time?
-        new_value = Time.parse_localized(original_value) rescue original_value
+      def _write_attribute(attr_name, original_value)
+        new_value = original_value
+        if column = column_for_attribute(attr_name.to_s)
+          if column.date?
+            new_value = Date.parse_localized(original_value) rescue original_value
+          elsif column.time?
+            new_value = Time.parse_localized(original_value) rescue original_value
+          end
+        end
+        super(attr_name, new_value)
       end
+
     end
-    write_attribute_without_localization(attr_name, new_value)
-  end
-  alias_method_chain :write_attribute, :localization
 
-  protected
+    module ClassMethods
 
-  def self.define_method_attribute=(attr_name)
-    if create_time_zone_conversion_attribute?(attr_name, columns_hash[attr_name])
-      method_body, line = <<-EOV, __LINE__ + 1
+      def define_method_attribute=(attr_name)
+        # in case of translated column the columns_hash doesn't hold definition, so no need to check for time type
+        if columns_hash[attr_name] && create_time_zone_conversion_attribute?(attr_name, columns_hash[attr_name])
+          method_body, line = <<-EOV, __LINE__ + 1
         def #{attr_name}=(original_time)
           time = original_time
           unless time.acts_like?(:time)
             time = time.is_a?(String) ? (I18n.delocalization_enabled? ? Time.zone.parse_localized(time) : Time.zone.parse(time)) : time.to_time rescue time
           end
           time = time.in_time_zone rescue nil if time
-          write_attribute(:#{attr_name}, time)
+          _write_attribute(:#{attr_name}, time)
         end
-      EOV
-      generated_attribute_methods.module_eval(method_body, __FILE__, line)
-    else
-      super
+          EOV
+          generated_attribute_methods.module_eval(method_body, __FILE__, line)
+        else
+          super
+        end
+      end
     end
   end
 end
+
+ActiveRecord::Base.send(:extend, Delocalize::AttributeMethods::ClassMethods)
+ActiveRecord::Base.send(:prepend, Delocalize::AttributeMethods::Write)
 
 module ActiveRecord
   module Type
