@@ -6,7 +6,8 @@ require 'action_view'
 ActionView::Helpers::Tags::TextField.class_eval do
   include ActionView::Helpers::NumberHelper
 
-  def render_with_localization
+  alias render_without_localization render
+  def render
     if object &&
        (@options[:value].blank? || !@options[:value].is_a?(String)) &&
        (object.respond_to?(:has_attribute?) && object.has_attribute?(@method_name))
@@ -37,8 +38,6 @@ ActionView::Helpers::Tags::TextField.class_eval do
 
     render_without_localization
   end
-
-  alias_method_chain :render, :localization
 
   private
 
