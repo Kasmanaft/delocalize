@@ -13,6 +13,10 @@ ActiveRecord::ConnectionAdapters::Column.class_eval do
   def time?
     type == :datetime
   end
+  
+  def numeric?
+    %i(integer float decimal).include?(type)
+  end
 end
 
 module ActiveRecord::AttributeMethods::Write
