@@ -14,7 +14,7 @@ ActiveRecord::ConnectionAdapters::Column.class_eval do
     type == :datetime
   end
   
-  def numeric?
+  def number?
     %i(integer float decimal).include?(type)
   end
 end
