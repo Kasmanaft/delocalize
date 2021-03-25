@@ -32,7 +32,7 @@ module Delocalize
             new_value = Time.parse_localized(original_value) rescue original_value
           end
         end
-        super(attr_name, new_value)
+        raw_write_attribute(attr_name, new_value)
       end
 
     end
