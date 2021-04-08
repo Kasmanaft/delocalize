@@ -14,6 +14,10 @@ ActiveRecord::ConnectionAdapters::Column.class_eval do
   def time?
     type == :datetime
   end
+    
+  def number?
+    %i(integer float decimal).include?(type)
+  end
 end
 
 module Delocalize
